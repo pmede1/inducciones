@@ -1,5 +1,5 @@
 induccion_sara/data/tarea_1*
-
+*.DS_Store
 *.Rproj
 # History files
 .Rhistory
