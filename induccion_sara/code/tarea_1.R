@@ -1,5 +1,5 @@
-source('../auxiliar_functions.R')
-source('_requirements.R')
+source('requirements.R')
+library(dataRC)
 
 dict_path <- '../Data/RIPS_dictionary.xlsx'
 dict <- read_excel(dict_path, sheet = 'colnames')
@@ -50,8 +50,6 @@ df %>% distinct(PERSONABASICAID) %>%  write_parquet('../induccion_sara/tarea_1_R
 sprintf('\n\t RIPS history retrieved in %f mins\n', get_values_tic_msg('min')) %>% cat
 
 ## HISTORIAL RIPS
-source('../auxiliar_functions.R')
-source('_requirements.R')
 
 dict_path <- '../Data/RIPS_dictionary.xlsx'
 dict <- read_excel(dict_path, sheet = 'colnames')
@@ -64,7 +62,8 @@ folder <- '../Data/RIPS/'
 # MODIFY: SELECT THE DESIRED COLUMNS (USE THE UNINAME OF THE DICTIONARY).
 selected_columns <- c('PERSONABASICAID', 'EDAD', 'DIAG_PRIN', 'DIAG_R1', 'COD_DIAG_R2', 'COD_DIAG_R3')
 
-ids <- df$PERSONABASICAID
+ids <- open_dataset('../induccion_sara/tarea_1_RIPS.parquet') %>% 
+  select(PERSONABASICAID) %>% collect %>% unlist %>% unname
 
 df <- NULL
 tic()
@@ -83,7 +82,7 @@ for (file in files) {
     # Select variables and rename.
     select(all_of(selected_columns_file)) %>%
     rename_at(vars(selected_columns_file), function(x) selected_columns1) %>%
-    filter(PERSONABASICAID = ids) %>% 
+    filter(PERSONABASICAID %in% ids) %>% 
     mutate(PERSONABASICAID = as.character(PERSONABASICAID)) %>% 
     
     # Unify column types.
@@ -99,9 +98,14 @@ for (file in files) {
   sprintf('\n\t Completed in %f secs.\n', get_values_tic_msg()) %>% cat
 }
 
-df %>% distinct(PERSONABASICAID) %>%  write_parquet('../induccion_sara/tarea_1_hist_RIPS.parquet')
+df %>% distinct(PERSONABASICAID) %>% write_parquet('../induccion_sara/tarea_1_hist_RIPS.parquet')
 sprintf('\n\t RIPS history retrieved in %f mins\n', get_values_tic_msg('min')) %>% cat
 
+
+
+# Get PILA history --------------------------------------------------------
+
+# Obtener historial de PILA para las variables id, fecha cobertura y tipo cotizante.
   
 
 
