@@ -1,15 +1,15 @@
 source('requirements.R')
-library(dataRC); library(dataRC); library(arrow); library(dplyr); library(stringr)
+library(dataRC)
 
 
 # GET IDS FOR WOMEN BETWEEN 17 AND 24 YEARS -------------------------------
 
-dict_path <- '../Data/RIPS_dictionary.xlsx'
+dict_path <- file.path(FOLDER_DATOS, 'unidicts/RIPS_dictionary.xlsx')
 dict <- read_excel(dict_path, sheet = 'colnames')
 names(dict) <- sapply(str_split(names(dict), '\\.'),
                       function(x) paste(tail(x, 2), collapse = '.'))
 # MODIFY: SELECT THE DESIRED FILES.
-folder <- '../Data/RIPS/'
+folder <- file.path(FOLDER_DATOS, '_RIPS')
 (files <- list.files(folder, pattern = '(proc|cons|urg|hosp)'))
 
 # MODIFY: SELECT THE DESIRED COLUMNS (USE THE UNINAME OF THE DICTIONARY).
@@ -24,11 +24,10 @@ for (file in files) {
   df0 <- open_dataset(sprintf('%s/%s', folder, file)) %>% 
 
     unify_colnames(dict, file, selected_columns) %>% 
-    unify_classes(dict, file, selected_columns) %>% 
-    relocate_columns(selected_columns) %>% 
     
     mutate(PERSONABASICAID = as.character(PERSONABASICAID)) %>% 
     filter(nchar(PERSONABASICAID) > 1) %>% 
+    unify_classes(dict, file, selected_columns) %>% 
     # MODIFY: PROCESS THE DATA AS NEEDED.
     filter(SEXO == 'F', between(EDAD, 17, 25)) %>% 
     distinct(PERSONABASICAID) %>% collect
@@ -38,24 +37,24 @@ for (file in files) {
   sprintf('\n\t Completed in %f secs.\n', get_values_tic_msg()) %>% cat
 }
 
-df %>% distinct(PERSONABASICAID) %>%  write_parquet('../induccion_sara/tarea_1_RIPS.parquet')
+df %>% distinct(PERSONABASICAID) %>% 
+  write_parquet(file.path(FOLDER_PROYECTO, 'tarea_1_RIPS.parquet'))
 sprintf('\n\t RIPS history retrieved in %f mins\n', get_values_tic_msg('min')) %>% cat
-
 
 # GET RIPS HISTORY --------------------------------------------------------
 
-dict_path <- '../Data/RIPS_dictionary.xlsx'
+dict_path <- file.path(FOLDER_DATOS, 'unidicts/RIPS_dictionary.xlsx')
 dict <- read_excel(dict_path, sheet = 'colnames')
 names(dict) <- sapply(str_split(names(dict), '\\.'),
                       function(x) paste(tail(x, 2), collapse = '.'))
 # MODIFY: SELECT THE DESIRED FILES.
-folder <- '../Data/RIPS/'
-(files <- list.files(folder))
+folder <- file.path(FOLDER_DATOS, '_RIPS')
+(files <- list.files(folder, pattern = '(proc|cons|urg|hosp)'))
 
 # MODIFY: SELECT THE DESIRED COLUMNS (USE THE UNINAME OF THE DICTIONARY).
 selected_columns <- c('PERSONABASICAID', 'EDAD', 'DIAG_PRIN', 'DIAG_R1', 'COD_DIAG_R2', 'COD_DIAG_R3')
 
-ids <- open_dataset('../induccion_sara/tarea_1_RIPS.parquet') %>% 
+ids <- open_dataset(file.path(FOLDER_PROYECTO, 'tarea_1_RIPS.parquet')) %>% 
   select(PERSONABASICAID) %>% collect %>% unlist %>% unname
 
 df <- NULL
@@ -66,26 +65,24 @@ for (file in files) {
   
   df0 <- open_dataset(sprintf('%s/%s', folder, file)) %>% 
     unify_colnames(dict, file, selected_columns) %>% 
-    unify_classes(dict, file, selected_columns) %>% 
-    relocate_columns(selected_columns) %>% 
-    
     filter(PERSONABASICAID %in% ids) %>% 
-    mutate(PERSONABASICAID = as.character(PERSONABASICAID)) %>% 
-    
+    unify_classes(dict, file, selected_columns) %>% 
     # MODIFY: PROCESS THE DATA AS NEEDED.
-    distinct(PERSONABASICAID) %>% collect
+    collect
   
-  df <- rbind(df, df0) %>% distinct(PERSONABASICAID)
+  df <- bind_rows(df, df0) %>% distinct(PERSONABASICAID)
   
   sprintf('\n\t Completed in %f secs.\n', get_values_tic_msg()) %>% cat
 }
 
-df %>% distinct(PERSONABASICAID) %>% write_parquet('../induccion_sara/tarea_1_hist_RIPS.parquet')
+df %>% 
+  relocate_columns(selected_columns) %>%
+  write_parquet(file.path(FOLDER_PROYECTO, 'tarea_1_RIPS.parquet'))
 sprintf('\n\t RIPS history retrieved in %f mins\n', get_values_tic_msg('min')) %>% cat
 
 
 # GET PILA HISTORY --------------------------------------------------------
-  
+
 dict_path <- '../Data/PILA_dictionary.xlsx'
 dict <- read_excel(dict_path, sheet = 'colnames')
 names(dict) <- sapply(str_split(names(dict), '\\.'),
@@ -109,12 +106,8 @@ for (file in files) {
   df0 <- open_dataset(sprintf('%s/%s', folder, file)) %>% 
     unify_colnames(dict, file, selected_columns) %>% 
     unify_classes(dict, file, selected_columns) %>% 
-    relocate_columns(selected_columns) %>% 
-    
-    filter(personabasicaid %in% ids) %>% 
-    mutate(personabasicaid = as.character(personabasicaid)) %>% 
-    
     # MODIFY: PROCESS THE DATA AS NEEDED.
+    filter(personabasicaid %in% ids) %>% 
     distinct(personabasicaid) %>% collect
   
   df <- rbind(df, df0) %>% distinct(personabasicaid)
@@ -122,7 +115,9 @@ for (file in files) {
   sprintf('\n\t Completed in %f secs.\n', get_values_tic_msg()) %>% cat
 }
 
-df %>% distinct(personabasicaid) %>% write_parquet('../induccion_sara/tarea_1_hist_PILA.parquet')
-sprintf('\n\t RIPS history retrieved in %f mins\n', get_values_tic_msg('min')) %>% cat
+df %>% 
+  relocate_columns(selected_columns) %>% 
+  write_parquet('../induccion_sara/tarea_1_hist_PILA.parquet')
+sprintf('\n\t PILA history retrieved in %f mins\n', get_values_tic_msg('min')) %>% cat
 
 
